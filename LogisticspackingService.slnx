@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="LogisticspackingService.Api/LogisticspackingService.Api.csproj" />
   <Project Path="LogisticsPackingService.Application/LogisticsPackingService.Application.csproj" />
   <Project Path="LogisticsPackingService.Domain/LogisticsPackingService.Domain.csproj" />
