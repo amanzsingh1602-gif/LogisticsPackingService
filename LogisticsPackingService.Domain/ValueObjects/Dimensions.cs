@@ -4,8 +4,8 @@ using System.Text;
 
 namespace LogisticsPackingService.Domain.ValueObjects
 {
-    public record Dimensions(
-        decimal Length,
+    public readonly record struct Dimensions(
         decimal Width,
-        decimal Height);
+        decimal Height,
+        decimal Length);
 }

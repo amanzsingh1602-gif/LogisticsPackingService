@@ -5,12 +5,12 @@ using System.Text;
 
 namespace LogisticsPackingService.Domain.Entities
 {
-    public class Package
+    public class Box
     {
-        public required int Id { get; init; }
+        public required string Name { get; init; }
 
         public Dimensions Dimensions { get; init; }
 
-        public decimal Weight { get; init; }
+        public decimal MaxWeight { get; init; }
     }
 }

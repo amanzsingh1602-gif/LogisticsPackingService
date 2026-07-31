@@ -4,9 +4,9 @@ using System.Text;
 
 namespace LogisticsPackingService.Domain.Exceptions
 {
-    public class InvalidShipmentException : Exception
+    public class PackageDoesNotFitException : Exception
     {
-        public InvalidShipmentException(string message)
+        public PackageDoesNotFitException(string message)
             : base(message)
         {
         }
