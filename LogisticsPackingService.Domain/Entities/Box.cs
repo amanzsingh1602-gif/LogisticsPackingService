@@ -9,7 +9,7 @@ namespace LogisticsPackingService.Domain.Entities
     {
         public required string Name { get; init; }
 
-        public Dimensions Dimensions { get; init; }
+        public required Dimensions Dimensions { get; init; }
 
         public decimal MaxWeight { get; init; }
     }

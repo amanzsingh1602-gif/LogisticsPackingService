@@ -7,8 +7,6 @@ namespace LogisticsPackingService.Application.Interfaces
 {
     public interface IPackingService
     {
-        Task<PackingResponseDto> CalculateBoxesAsync(
-            PackingRequestDto request,
-            CancellationToken cancellationToken = default);
+        PackingResponseDto CalculateBoxes(PackingRequestDto request);
     }
 }
