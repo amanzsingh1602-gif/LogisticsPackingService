@@ -4,42 +4,48 @@
  
 Logistics Packing Service is an ASP.NET Core Web API that calculates the number of shipping boxes required for a collection of packages.
  
-The application calculates the number of shipping boxes required for a collection of packages. Packages are processed in descending order of volume and each package is assigned to the smallest available shipping box that satisfies its dimension and weight constraints.
+Packages are processed in descending order of volume, and each package is assigned to the smallest available shipping box that satisfies both dimension and weight constraints. Package rotation is supported when determining the best-fitting box.
+ 
 ---
  
-## Solution Architecture
+# Solution Architecture
  
 The solution follows the principles of Clean Architecture and is divided into the following projects:
  
 ### LogisticsPackingService.Api
+ 
 - API endpoints
-- Swagger/OpenAPI configuration
+- Swagger / OpenAPI configuration
 - Global exception handling
 - Dependency injection configuration
  
 ### LogisticsPackingService.Application
+ 
 - Business logic
 - DTOs
 - Service interfaces
 - FluentValidation validators
  
 ### LogisticsPackingService.Domain
+ 
 - Domain entities
 - Value objects
 - Domain exceptions
  
 ### LogisticsPackingService.Infrastructure
+ 
 - Box catalog provider
 - Configuration using the Options Pattern
 - Dependency Injection registrations
  
 ### LogisticsPackingService.Tests
+ 
 - Unit tests for PackingService
 - Validator tests
  
 ---
  
-## Technologies Used
+# Technologies Used
  
 - .NET 10
 - ASP.NET Core Web API
@@ -51,7 +57,7 @@ The solution follows the principles of Clean Architecture and is divided into th
  
 ---
  
-## Assumptions
+# Assumptions
  
 The implementation uses the following assumptions:
  
@@ -62,13 +68,15 @@ The implementation uses the following assumptions:
 - If a package cannot fit into any available box, a `PackageDoesNotFitException` is thrown.
 - Shipping box definitions are loaded from configuration using the Options Pattern.
  
-**Note:**  
-The assignment allowed a simple packing heuristic. Therefore, a one-package-per-box strategy was intentionally chosen to keep the implementation simple, maintainable, and easy to understand.
+> **Note**
+>
+> The assessment allowed a simple packing heuristic. Therefore, a one-package-per-box strategy was intentionally chosen to keep the implementation simple, maintainable, and easy to understand.
+ 
 ---
  
-## API Endpoint
+# API Endpoint
  
-### Calculate Required Boxes
+## Calculate Required Boxes
  
 **POST**
  
@@ -103,13 +111,34 @@ The assignment allowed a simple packing heuristic. Therefore, a one-package-per-
  
 ```json
 {
-  "boxesRequired": 2
+  "boxesRequired": 2,
+  "assignedBoxes": [
+    {
+      "packageId": 1,
+      "boxName": "B"
+    },
+    {
+      "packageId": 2,
+      "boxName": "A"
+    }
+  ]
 }
 ```
  
 ---
-
-## Running the Application
+ 
+# Additional Test Scenarios
+ 
+The API also supports the following scenarios:
+ 
+- Package fits after rotation and is assigned the smallest suitable box.
+- Package dimensions exceed all available boxes (returns **400 Bad Request**).
+- Package weight exceeds the maximum supported weight (returns **400 Bad Request**).
+- Invalid request payload is automatically validated using FluentValidation.
+ 
+---
+ 
+# Running the Application
  
 1. Clone the repository.
 2. Open the solution in Visual Studio.
@@ -120,11 +149,11 @@ The assignment allowed a simple packing heuristic. Therefore, a one-package-per-
  
 ---
  
-## Running the Tests
+# Running the Tests
  
 Run all unit tests using:
  
-```
+```bash
 dotnet test
 ```
  
@@ -132,7 +161,7 @@ or use **Visual Studio Test Explorer**.
  
 ---
  
-## Testing
+# Testing
  
 The solution includes unit tests covering:
  
@@ -142,19 +171,17 @@ The solution includes unit tests covering:
  
 ---
  
-## Future Improvements
+# Future Improvements
  
 Potential enhancements include:
  
-- Pack multiple packages into a single box.
-- Implement an optimized bin-packing algorithm.
+- Pack multiple packages into a single shipping box using an optimized bin-packing algorithm.
 - Add integration tests.
 - Persist the box catalog in a database.
-- Add logging and telemetry.
+- Add structured logging and telemetry.
  
 ---
  
-## Author
+# Author
  
 Developed as part of a technical assessment using ASP.NET Core and Clean Architecture.
- 

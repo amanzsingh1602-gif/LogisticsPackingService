@@ -24,7 +24,7 @@ public sealed class PackingService : IPackingService
         var sortedPackages = request.Packages
             .OrderByDescending(p => CalculateVolume(
                 new Dimensions(p.Width, p.Height, p.Length)));
-
+        var assignedBoxes = new List<AssignedBoxDto>();
         var boxesRequired = 0;
 
         foreach (var packageDto in sortedPackages)
@@ -46,11 +46,17 @@ public sealed class PackingService : IPackingService
                 throw new PackageDoesNotFitException(
                     $"Package {package.Id} cannot fit into any available shipping box.");
             }
+            assignedBoxes.Add(new AssignedBoxDto(
+                package.Id,
+                box.Name));
 
             boxesRequired++;
         }
+        assignedBoxes = assignedBoxes
+    .OrderBy(x => request.Packages.ToList().FindIndex(p => p.Id == x.PackageId))
+    .ToList();
 
-        return new PackingResponseDto(boxesRequired);
+        return new PackingResponseDto(boxesRequired,assignedBoxes);
     }
 
     private static Box? FindSmallestSuitableBox(

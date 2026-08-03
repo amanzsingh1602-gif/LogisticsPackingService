@@ -53,20 +53,18 @@ public class PackingServiceTests
     [Fact]
     public void CalculateBoxes_ShouldReturnOne_WhenSinglePackageFits()
     {
-
         var request = new PackingRequestDto(
         [
-            new PackageDto(
-            1,
-            10,
-            10,
-            10,
-            5)
+            new PackageDto(1, 10, 10, 10, 5)
         ]);
 
         var result = _packingService.CalculateBoxes(request);
 
         result.BoxesRequired.Should().Be(1);
+
+        result.AssignedBoxes.Should().HaveCount(1);
+        result.AssignedBoxes[0].PackageId.Should().Be(1);
+        result.AssignedBoxes[0].BoxName.Should().Be("B");
     }
 
     [Fact]
@@ -74,7 +72,7 @@ public class PackingServiceTests
     {
         var request = new PackingRequestDto(
         [
-        new PackageDto(1,10,10,10,5),
+            new PackageDto(1,10,10,10,5),
         new PackageDto(2,20,20,20,5),
         new PackageDto(3,30,30,30,5)
         ]);
@@ -82,6 +80,12 @@ public class PackingServiceTests
         var result = _packingService.CalculateBoxes(request);
 
         result.BoxesRequired.Should().Be(3);
+
+        result.AssignedBoxes.Should().HaveCount(3);
+
+        result.AssignedBoxes[0].BoxName.Should().Be("B");
+        result.AssignedBoxes[1].BoxName.Should().Be("B");
+        result.AssignedBoxes[2].BoxName.Should().Be("B");
     }
 
     [Fact]
@@ -138,5 +142,27 @@ public class PackingServiceTests
         var result = _packingService.CalculateBoxes(request);
 
         result.BoxesRequired.Should().Be(1);
+    }
+
+    [Fact]
+    public void CalculateBoxes_ShouldSelectSmallestSuitableBox()
+    {
+        var request = new PackingRequestDto(
+        [
+            new PackageDto(
+            1,
+            90,
+            90,
+            90,
+            100)
+        ]);
+
+        var result = _packingService.CalculateBoxes(request);
+
+        result.BoxesRequired.Should().Be(1);
+
+        result.AssignedBoxes.Should().ContainSingle();
+
+        result.AssignedBoxes[0].BoxName.Should().Be("B");
     }
 }

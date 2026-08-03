@@ -4,7 +4,7 @@ using System.Text;
 
 namespace LogisticsPackingService.Application.DTOs
 {
-    public sealed record PackingResponseDto(
-        int BoxesRequired,
-        IReadOnlyList<AssignedBoxDto> AssignedBoxes);
+    public sealed record AssignedBoxDto(
+        int PackageId,
+        string BoxName);
 }
