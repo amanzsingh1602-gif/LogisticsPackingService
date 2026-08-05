@@ -8,8 +8,10 @@ namespace LogisticsPackingService.Domain.Entities
     {
         public required Box Box { get; init; }
 
-        public List<Package> Packages { get; } = new();
+        public decimal UsedWeight { get; set; }
 
-        public decimal RemainingWeight { get; set; }
+        public decimal UsedHeight { get; set; }
+
+        public List<Shelf> Shelves { get; } = new();
     }
 }

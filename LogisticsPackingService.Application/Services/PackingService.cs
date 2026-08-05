@@ -1,110 +1,55 @@
 ﻿using LogisticsPackingService.Application.DTOs;
 using LogisticsPackingService.Application.Interfaces;
 using LogisticsPackingService.Domain.Entities;
-using LogisticsPackingService.Domain.Exceptions;
-using LogisticsPackingService.Domain.ValueObjects;
 
 namespace LogisticsPackingService.Application.Services;
 
 public sealed class PackingService : IPackingService
 {
     private readonly IBoxCatalogProvider _boxCatalogProvider;
+    private readonly IPackingAlgorithm _packingAlgorithm;
 
-    public PackingService(IBoxCatalogProvider boxCatalogProvider)
+    public PackingService(
+        IBoxCatalogProvider boxCatalogProvider,
+        IPackingAlgorithm packingAlgorithm)
     {
         _boxCatalogProvider = boxCatalogProvider;
+        _packingAlgorithm = packingAlgorithm;
     }
 
     public PackingResponseDto CalculateBoxes(PackingRequestDto request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        var packages = request.Packages
+            .Select(p => new Package
+            {
+                Id = p.Id,
+                Dimensions = new Domain.ValueObjects.Dimensions(
+                    p.Width,
+                    p.Height,
+                    p.Length),
+                Weight = p.Weight
+            })
+            .ToList();
+
         var availableBoxes = _boxCatalogProvider.GetBoxes();
 
-        var sortedPackages = request.Packages
-            .OrderByDescending(p => CalculateVolume(
-                new Dimensions(p.Width, p.Height, p.Length)));
-        var assignedBoxes = new List<AssignedBoxDto>();
-        var boxesRequired = 0;
+        var packedBoxes = _packingAlgorithm.Pack(
+            packages,
+            availableBoxes);
 
-        foreach (var packageDto in sortedPackages)
-        {
-            var package = new Package
-            {
-                Id = packageDto.Id,
-                Dimensions = new Dimensions(
-                    packageDto.Width,
-                    packageDto.Height,
-                    packageDto.Length),
-                Weight = packageDto.Weight
-            };
+        var response = packedBoxes
+            .Select(box => new PackedBoxDto(
+                box.Box.Name,
+                box.Shelves
+                    .SelectMany(s => s.Packages)
+                    .Select(p => p.Id)
+                    .ToList()))
+            .ToList();
 
-            var box = FindSmallestSuitableBox(package, availableBoxes);
-
-            if (box is null)
-            {
-                throw new PackageDoesNotFitException(
-                    $"Package {package.Id} cannot fit into any available shipping box.");
-            }
-            assignedBoxes.Add(new AssignedBoxDto(
-                package.Id,
-                box.Name));
-
-            boxesRequired++;
-        }
-        assignedBoxes = assignedBoxes
-    .OrderBy(x => request.Packages.ToList().FindIndex(p => p.Id == x.PackageId))
-    .ToList();
-
-        return new PackingResponseDto(boxesRequired,assignedBoxes);
-    }
-
-    private static Box? FindSmallestSuitableBox(
-        Package package,
-        IReadOnlyList<Box> availableBoxes)
-    {
-        return availableBoxes
-            .Where(box => CanFit(package, box))
-            .OrderBy(box => CalculateVolume(box.Dimensions))
-            .FirstOrDefault();
-    }
-
-    private static bool CanFit(
-        Package package,
-        Box box)
-    {
-        if (package.Weight > box.MaxWeight)
-        {
-            return false;
-        }
-
-        return CanFitWithRotation(package.Dimensions, box.Dimensions);
-    }
-
-    private static bool CanFitWithRotation(
-        Dimensions package,
-        Dimensions box)
-    {
-        var orientations = new[]
-        {
-            (package.Width, package.Height, package.Length),
-            (package.Width, package.Length, package.Height),
-            (package.Height, package.Width, package.Length),
-            (package.Height, package.Length, package.Width),
-            (package.Length, package.Width, package.Height),
-            (package.Length, package.Height, package.Width)
-        };
-
-        return orientations.Any(o =>
-            o.Item1 <= box.Width &&
-            o.Item2 <= box.Height &&
-            o.Item3 <= box.Length);
-    }
-
-    private static decimal CalculateVolume(Dimensions dimensions)
-    {
-        return dimensions.Width *
-               dimensions.Height *
-               dimensions.Length;
+        return new PackingResponseDto(
+            response.Count,
+            response);
     }
 }

@@ -6,5 +6,5 @@ namespace LogisticsPackingService.Application.DTOs
 {
     public sealed record PackingResponseDto(
         int BoxesRequired,
-        IReadOnlyList<AssignedBoxDto> AssignedBoxes);
+        IReadOnlyList<PackedBoxDto> Boxes);
 }

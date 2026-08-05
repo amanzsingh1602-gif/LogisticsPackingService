@@ -17,7 +17,7 @@ public static class DependencyInjection
             configuration.GetSection("BoxCatalog"));
 
         services.AddSingleton<IBoxCatalogProvider, BoxCatalogProvider>();
-
+        services.AddScoped<IPackingAlgorithm, ShelfPackingAlgorithm>();
         services.AddScoped<IPackingService, PackingService>();
 
         return services;

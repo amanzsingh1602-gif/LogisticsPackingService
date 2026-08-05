@@ -2,45 +2,48 @@
  
 ## Overview
  
-Logistics Packing Service is an ASP.NET Core Web API that calculates the number of shipping boxes required for a collection of packages.
+Logistics Packing Service is an ASP.NET Core Web API that determines the minimum number of shipping boxes required for a collection of packages.
  
-Packages are processed in descending order of volume, and each package is assigned to the smallest available shipping box that satisfies both dimension and weight constraints. Package rotation is supported when determining the best-fitting box.
+The solution implements a **Shelf Packing heuristic** where packages are processed in descending order of volume and are placed into existing shipping boxes whenever possible before opening a new box.
+ 
+Package rotation is supported to maximize the chance of fitting a package into a suitable shipping box.
  
 ---
  
 # Solution Architecture
  
-The solution follows the principles of Clean Architecture and is divided into the following projects:
+The solution follows **Clean Architecture** principles and is divided into the following projects.
  
-### LogisticsPackingService.Api
+## LogisticsPackingService.Api
  
-- API endpoints
+- REST API endpoints
 - Swagger / OpenAPI configuration
 - Global exception handling
-- Dependency injection configuration
+- Dependency Injection configuration
  
-### LogisticsPackingService.Application
+## LogisticsPackingService.Application
  
-- Business logic
+- Application services
+- Packing algorithm abstraction (`IPackingAlgorithm`)
 - DTOs
-- Service interfaces
 - FluentValidation validators
  
-### LogisticsPackingService.Domain
+## LogisticsPackingService.Domain
  
 - Domain entities
 - Value objects
 - Domain exceptions
  
-### LogisticsPackingService.Infrastructure
+## LogisticsPackingService.Infrastructure
  
 - Box catalog provider
 - Configuration using the Options Pattern
 - Dependency Injection registrations
  
-### LogisticsPackingService.Tests
+## LogisticsPackingService.Tests
  
-- Unit tests for PackingService
+- Packing service tests
+- Packing algorithm tests
 - Validator tests
  
 ---
@@ -57,20 +60,40 @@ The solution follows the principles of Clean Architecture and is divided into th
  
 ---
  
+# Packing Heuristic
+ 
+The solution uses a **Shelf Packing** heuristic.
+ 
+The algorithm works as follows:
+ 
+1. Packages are sorted in descending order of volume.
+2. Existing opened boxes are checked before opening a new box.
+3. Each package is placed onto the first shelf where it fits.
+4. If no shelf can accommodate the package, a new shelf is created if sufficient height remains.
+5. If no existing box can accommodate the package, the smallest suitable shipping box is selected.
+6. Package rotation is supported by evaluating all possible orientations.
+ 
+This heuristic keeps the implementation simple while demonstrating actual package packing rather than assigning every package to an independent box.
+ 
+---
+ 
 # Assumptions
  
 The implementation uses the following assumptions:
  
-- Each package is assigned to a single shipping box.
-- Packages are processed in descending order of volume.
-- The smallest available box that satisfies both dimension and weight constraints is selected.
-- Package rotation is supported by evaluating all possible orientations.
-- If a package cannot fit into any available box, a `PackageDoesNotFitException` is thrown.
+- Packages are processed using a First Fit Decreasing approach.
+- Packages are packed using a Shelf Packing heuristic.
+- Multiple packages may share the same shipping box.
+- Packages on a shelf are arranged side-by-side along the box length.
+- A new shelf is created only if sufficient height remains inside the box.
+- Package rotation is supported by evaluating all six possible orientations.
+- Weight constraints are always validated before placing a package.
 - Shipping box definitions are loaded from configuration using the Options Pattern.
+- If a package cannot fit into any available shipping box, a `PackageDoesNotFitException` is thrown.
  
 > **Note**
 >
-> The assessment allowed a simple packing heuristic. Therefore, a one-package-per-box strategy was intentionally chosen to keep the implementation simple, maintainable, and easy to understand.
+> The objective of this implementation is to demonstrate a practical packing heuristic rather than solve the NP-hard 3D Bin Packing problem. The Shelf Packing approach provides a good balance between simplicity, maintainability and realistic packing behaviour.
  
 ---
  
@@ -84,7 +107,9 @@ The implementation uses the following assumptions:
 /api/Packing/calculate
 ```
  
-### Sample Request
+---
+ 
+## Sample Request
  
 ```json
 {
@@ -98,28 +123,17 @@ The implementation uses the following assumptions:
     },
     {
       "id": 2,
-      "width": 150,
-      "height": 150,
-      "length": 100,
-      "weight": 800
-    }
-  ]
-}
-```
- 
-### Sample Response
- 
-```json
-{
-  "boxesRequired": 2,
-  "assignedBoxes": [
-    {
-      "packageId": 1,
-      "boxName": "B"
+      "width": 80,
+      "height": 100,
+      "length": 80,
+      "weight": 300
     },
     {
-      "packageId": 2,
-      "boxName": "A"
+      "id": 3,
+      "width": 200,
+      "height": 200,
+      "length": 150,
+      "weight": 1200
     }
   ]
 }
@@ -127,14 +141,41 @@ The implementation uses the following assumptions:
  
 ---
  
-# Additional Test Scenarios
+## Sample Response
  
-The API also supports the following scenarios:
+```json
+{
+  "boxesRequired": 2,
+  "boxes": [
+    {
+      "boxName": "A",
+      "packageIds": [
+        1,
+        2
+      ]
+    },
+    {
+      "boxName": "C",
+      "packageIds": [
+        3
+      ]
+    }
+  ]
+}
+```
  
-- Package fits after rotation and is assigned the smallest suitable box.
-- Package dimensions exceed all available boxes (returns **400 Bad Request**).
-- Package weight exceeds the maximum supported weight (returns **400 Bad Request**).
-- Invalid request payload is automatically validated using FluentValidation.
+---
+ 
+# Validation
+ 
+The API validates:
+ 
+- Package dimensions must be greater than zero.
+- Package weight must be greater than zero.
+- Package Id must be greater than zero.
+- Request must contain at least one package.
+ 
+Invalid requests automatically return **400 Bad Request** using FluentValidation.
  
 ---
  
@@ -143,9 +184,9 @@ The API also supports the following scenarios:
 1. Clone the repository.
 2. Open the solution in Visual Studio.
 3. Set **LogisticsPackingService.Api** as the startup project.
-4. Run the application using the **HTTPS** launch profile.
-5. Open the Swagger UI using the HTTPS URL displayed by Visual Studio (for example, `https://localhost:7001/swagger`).
-6. Use the `POST /api/Packing/calculate` endpoint to test the API.
+4. Run the application.
+5. Open Swagger UI.
+6. Test the `POST /api/Packing/calculate` endpoint.
  
 ---
  
@@ -163,25 +204,39 @@ or use **Visual Studio Test Explorer**.
  
 # Testing
  
-The solution includes unit tests covering:
+The solution includes tests covering:
  
-- Packing service business logic
+- Packing Service orchestration
+- Shelf Packing algorithm
 - Package validation
 - Request validation
+- Package rotation
+- Invalid package scenarios
  
 ---
  
 # Future Improvements
  
-Potential enhancements include:
+Potential future enhancements include:
  
-- Pack multiple packages into a single shipping box using an optimized bin-packing algorithm.
+- Replace the Shelf Packing heuristic with a complete 3D Bin Packing algorithm.
+- Track exact package coordinates inside each box.
+- Improve shelf optimization to minimize wasted space.
 - Add integration tests.
 - Persist the box catalog in a database.
 - Add structured logging and telemetry.
  
 ---
  
+# Design Decisions
+ 
+- Clean Architecture separates business logic from infrastructure.
+- The packing algorithm is abstracted behind `IPackingAlgorithm`, allowing future algorithms to be introduced without changing the application service.
+- The current implementation favors readability, maintainability and extensibility over implementing a computationally expensive optimal packing solution.
+ 
+---
+ 
 # Author
  
-Developed as part of a technical assessment using ASP.NET Core and Clean Architecture.
+Developed as part of a technical assessment using ASP.NET Core, Clean Architecture and a Shelf Packing heuristic.
+ 
