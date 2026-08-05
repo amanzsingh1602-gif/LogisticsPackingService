@@ -2,8 +2,8 @@
  
 ## Overview
  
-Logistics Packing Service is an ASP.NET Core Web API that determines the minimum number of shipping boxes required for a collection of packages.
- 
+Logistics Packing Service is an ASP.NET Core Web API that calculates the number of shipping boxes required for a collection of packages using a practical packing heuristic.
+
 The solution implements a **Shelf Packing heuristic** where packages are processed in descending order of volume and are placed into existing shipping boxes whenever possible before opening a new box.
  
 Package rotation is supported to maximize the chance of fitting a package into a suitable shipping box.
@@ -74,7 +74,7 @@ The algorithm works as follows:
 6. If no existing box can accommodate the package, the smallest suitable shipping box is selected.
  
 This heuristic keeps the implementation simple while demonstrating actual package packing rather than assigning every package to an independent box.
- 
+The implementation models each shipping box as a collection of shelves. Each shelf reserves a fixed width and height when created, and packages placed on that shelf consume the remaining shelf length. This provides a practical approximation of real-world packing without the complexity of full 3D bin packing.
 ---
  
 # Assumptions
@@ -84,7 +84,8 @@ The implementation uses the following assumptions:
 - Packages are processed using a First Fit Decreasing approach.
 - Packages are packed using a Shelf Packing heuristic combined with Best Orientation and Best Shelf selection.
 - Multiple packages may share the same shipping box.
-- Packages on a shelf are arranged side-by-side along the box length.
+- Packages on a shelf are arranged side-by-side along the remaining shelf length.
+- Shelf width and height are fixed when a shelf is created and must accommodate all packages placed on that shelf.
 - A new shelf is created only if sufficient height remains inside the box.
 - Package rotation is supported by evaluating all six possible orientations.
 - Weight constraints are always validated before placing a package.
@@ -205,13 +206,16 @@ or use **Visual Studio Test Explorer**.
 # Testing
  
 The solution includes tests covering:
- 
+
 - Packing Service orchestration
 - Shelf Packing algorithm
+- Multiple package packing scenarios
+- Package rotation
+- Smallest suitable box selection
+- Weight constraint enforcement
+- Invalid package scenarios
 - Package validation
 - Request validation
-- Package rotation
-- Invalid package scenarios
  
 ---
  
@@ -232,7 +236,8 @@ Potential future enhancements include:
  
 - Clean Architecture separates business logic from infrastructure.
 - The packing algorithm is abstracted behind `IPackingAlgorithm`, allowing future algorithms to be introduced without changing the application service.
-- The packing algorithm combines First Fit Decreasing with Best Orientation and Best Shelf heuristics to improve box utilization while keeping the implementation simple and maintainable. 
+- The packing algorithm combines First Fit Decreasing with Best Orientation and Best Shelf heuristics to improve box utilization while keeping the implementation simple and maintainable.
+- The solution intentionally favors a clear, maintainable heuristic over a fully optimal packing algorithm, aligning with the assignment's focus on correctness, simplicity, and testability.
 ---
  
 # Author

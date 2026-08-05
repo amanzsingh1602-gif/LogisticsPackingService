@@ -8,6 +8,8 @@ namespace LogisticsPackingService.Domain.Entities
     {
         public decimal Height { get; set; }
 
+        public decimal Width { get; set; }
+
         public decimal RemainingLength { get; set; }
 
         public List<Package> Packages { get; } = new();

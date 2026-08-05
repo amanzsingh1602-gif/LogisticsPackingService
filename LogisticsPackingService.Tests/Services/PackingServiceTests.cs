@@ -60,6 +60,7 @@ public class PackingServiceTests
         var shelf = new Shelf
         {
             Height = 10,
+            Width = 10,
             RemainingLength = 140
         };
 
@@ -83,12 +84,19 @@ public class PackingServiceTests
 
         var result = _packingService.CalculateBoxes(request);
 
+        _packingAlgorithmMock.Verify(
+    x => x.Pack(
+        It.IsAny<IReadOnlyList<Package>>(),
+        It.IsAny<IReadOnlyList<Box>>()),
+    Times.Once);
+
         result.BoxesRequired.Should().Be(1);
 
         result.Boxes.Should().HaveCount(1);
 
         result.Boxes[0].BoxName.Should().Be("A");
 
-        result.Boxes[0].PackageIds.Should().Contain(1);
+        result.Boxes[0].PackageIds.Should().ContainSingle()
+    .Which.Should().Be(1);
     }
 }

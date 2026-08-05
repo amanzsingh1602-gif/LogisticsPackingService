@@ -39,13 +39,17 @@ public sealed class PackingService : IPackingService
             packages,
             availableBoxes);
 
+        var packageOrder = request.Packages
+    .Select((p, index) => new { p.Id, index })
+    .ToDictionary(x => x.Id, x => x.index);
+
         var response = packedBoxes
             .Select(box => new PackedBoxDto(
                 box.Box.Name,
                 box.Shelves
                     .SelectMany(s => s.Packages)
                     .Select(p => p.Id)
-                    .OrderBy(id => request.Packages.ToList().FindIndex(x=>x.Id == id))
+                    .OrderBy(id => packageOrder[id])
                     .ToList()))
             .ToList();
 
