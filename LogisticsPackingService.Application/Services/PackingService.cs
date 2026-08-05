@@ -45,6 +45,7 @@ public sealed class PackingService : IPackingService
                 box.Shelves
                     .SelectMany(s => s.Packages)
                     .Select(p => p.Id)
+                    .OrderBy(id => request.Packages.ToList().FindIndex(x=>x.Id == id))
                     .ToList()))
             .ToList();
 
