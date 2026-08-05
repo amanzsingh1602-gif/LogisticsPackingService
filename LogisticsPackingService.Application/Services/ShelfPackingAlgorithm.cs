@@ -73,8 +73,8 @@ public sealed class ShelfPackingAlgorithm : IPackingAlgorithm
     }
 
     private bool TryPlaceInExistingBox(
-        Package package,
-        PackedBox packedBox)
+     Package package,
+     PackedBox packedBox)
     {
         if (packedBox.UsedWeight + package.Weight >
             packedBox.Box.MaxWeight)
@@ -82,44 +82,66 @@ public sealed class ShelfPackingAlgorithm : IPackingAlgorithm
             return false;
         }
 
+        Shelf? bestShelf = null;
+        Dimensions? bestOrientation = null;
+        decimal smallestRemainingLength = decimal.MaxValue;
+
         foreach (var shelf in packedBox.Shelves)
         {
-            if (TryPlaceOnShelf(package, packedBox, shelf))
+            var orientation = GetBestOrientation(
+                package,
+                packedBox.Box,
+                shelf.Height,
+                shelf.RemainingLength);
+
+            if (!orientation.HasValue)
+                continue;
+
+            var selectedOrientation = orientation.Value;
+
+            var remaining =
+                shelf.RemainingLength - selectedOrientation.Length;
+
+            if (remaining < smallestRemainingLength)
             {
-                return true;
+                smallestRemainingLength = remaining;
+                bestShelf = shelf;
+                bestOrientation = selectedOrientation;
             }
         }
 
-        return TryCreateNewShelf(package, packedBox);
+        if (bestShelf is not null && bestOrientation.HasValue)
+        {
+            return TryPlaceOnShelf(
+                package,
+                packedBox,
+                bestShelf,
+                bestOrientation.Value);
+        }
+
+        return TryCreateNewShelf(
+            package,
+            packedBox);
     }
+
 
     private bool TryPlaceOnShelf(
     Package package,
     PackedBox packedBox,
-    Shelf shelf)
+    Shelf shelf,Dimensions orientation)
     {
-        var orientation = GetBestOrientation(
-            package,
-            packedBox.Box,
-            shelf.Height);
-
-        if (orientation is null)
-            return false;
-
-        if (orientation.Value.Length > shelf.RemainingLength)
-            return false;
 
         shelf.Packages.Add(new Package
         {
             Id = package.Id,
             Dimensions = new Dimensions(
-                orientation.Value.Width,
-                orientation.Value.Height,
-                orientation.Value.Length),
+                orientation.Width,
+                orientation.Height,
+                orientation.Length),
             Weight = package.Weight
         });
 
-        shelf.RemainingLength -= orientation.Value.Length;
+        shelf.RemainingLength -= orientation.Length;
 
         packedBox.UsedWeight += package.Weight;
 
@@ -133,7 +155,8 @@ public sealed class ShelfPackingAlgorithm : IPackingAlgorithm
         var orientation = GetBestOrientation(
             package,
             packedBox.Box,
-            null);
+            null,
+            packedBox.Box.Dimensions.Length);
 
         if (orientation is null)
             return false;
@@ -172,42 +195,23 @@ public sealed class ShelfPackingAlgorithm : IPackingAlgorithm
     }
 
     private Dimensions? GetBestOrientation(
-        Package package,
-        Box box,
-        decimal? shelfHeight)
+     Package package,
+     Box box,
+     decimal? shelfHeight,
+     decimal availableLength)
     {
         var orientations = new[]
         {
-        new Dimensions(
-            package.Dimensions.Width,
-            package.Dimensions.Height,
-            package.Dimensions.Length),
-
-        new Dimensions(
-            package.Dimensions.Width,
-            package.Dimensions.Length,
-            package.Dimensions.Height),
-
-        new Dimensions(
-            package.Dimensions.Height,
-            package.Dimensions.Width,
-            package.Dimensions.Length),
-
-        new Dimensions(
-            package.Dimensions.Height,
-            package.Dimensions.Length,
-            package.Dimensions.Width),
-
-        new Dimensions(
-            package.Dimensions.Length,
-            package.Dimensions.Width,
-            package.Dimensions.Height),
-
-        new Dimensions(
-            package.Dimensions.Length,
-            package.Dimensions.Height,
-            package.Dimensions.Width)
+        new Dimensions(package.Dimensions.Width, package.Dimensions.Height, package.Dimensions.Length),
+        new Dimensions(package.Dimensions.Width, package.Dimensions.Length, package.Dimensions.Height),
+        new Dimensions(package.Dimensions.Height, package.Dimensions.Width, package.Dimensions.Length),
+        new Dimensions(package.Dimensions.Height, package.Dimensions.Length, package.Dimensions.Width),
+        new Dimensions(package.Dimensions.Length, package.Dimensions.Width, package.Dimensions.Height),
+        new Dimensions(package.Dimensions.Length, package.Dimensions.Height, package.Dimensions.Width)
     };
+
+        Dimensions? bestOrientation = null;
+        decimal smallestRemainingLength = decimal.MaxValue;
 
         foreach (var orientation in orientations)
         {
@@ -222,19 +226,28 @@ public sealed class ShelfPackingAlgorithm : IPackingAlgorithm
                 if (orientation.Height > shelfHeight.Value)
                     continue;
             }
-
             else
             {
-                if (orientation.Height >
-                    box.Dimensions.Height)
+                if (orientation.Height > box.Dimensions.Height)
                     continue;
             }
 
-            return orientation;
+            if (orientation.Length > availableLength)
+                continue;
+
+            var remainingLength =
+                availableLength - orientation.Length;
+
+            if (remainingLength < smallestRemainingLength)
+            {
+                smallestRemainingLength = remainingLength;
+                bestOrientation = orientation;
+            }
         }
 
-        return null;
+        return bestOrientation;
     }
+
     private Box? FindSmallestSuitableBox(
     Package package,
     IReadOnlyList<Box> availableBoxes)
@@ -245,7 +258,7 @@ public sealed class ShelfPackingAlgorithm : IPackingAlgorithm
                 if (package.Weight > box.MaxWeight)
                     return false;
 
-                return GetBestOrientation(package, box, null) != null;
+                return GetBestOrientation(package, box, null,box.Dimensions.Length) != null;
             })
             .OrderBy(box =>
                 CalculateVolume(box.Dimensions))

@@ -68,10 +68,10 @@ The algorithm works as follows:
  
 1. Packages are sorted in descending order of volume.
 2. Existing opened boxes are checked before opening a new box.
-3. Each package is placed onto the first shelf where it fits.
-4. If no shelf can accommodate the package, a new shelf is created if sufficient height remains.
-5. If no existing box can accommodate the package, the smallest suitable shipping box is selected.
-6. Package rotation is supported by evaluating all possible orientations.
+3. For each package, all valid orientations are evaluated and the orientation that minimizes unused shelf space is selected.
+4. The algorithm evaluates all existing shelves and places the package on the shelf that leaves the least remaining space (Best Fit).
+5. If no shelf can accommodate the package, a new shelf is created if sufficient height remains.
+6. If no existing box can accommodate the package, the smallest suitable shipping box is selected.
  
 This heuristic keeps the implementation simple while demonstrating actual package packing rather than assigning every package to an independent box.
  
@@ -82,7 +82,7 @@ This heuristic keeps the implementation simple while demonstrating actual packag
 The implementation uses the following assumptions:
  
 - Packages are processed using a First Fit Decreasing approach.
-- Packages are packed using a Shelf Packing heuristic.
+- Packages are packed using a Shelf Packing heuristic combined with Best Orientation and Best Shelf selection.
 - Multiple packages may share the same shipping box.
 - Packages on a shelf are arranged side-by-side along the box length.
 - A new shelf is created only if sufficient height remains inside the box.
@@ -232,8 +232,7 @@ Potential future enhancements include:
  
 - Clean Architecture separates business logic from infrastructure.
 - The packing algorithm is abstracted behind `IPackingAlgorithm`, allowing future algorithms to be introduced without changing the application service.
-- The current implementation favors readability, maintainability and extensibility over implementing a computationally expensive optimal packing solution.
- 
+- The packing algorithm combines First Fit Decreasing with Best Orientation and Best Shelf heuristics to improve box utilization while keeping the implementation simple and maintainable. 
 ---
  
 # Author
